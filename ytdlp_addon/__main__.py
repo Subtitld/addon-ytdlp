@@ -24,7 +24,8 @@ the host prefixes with `[addon:ytdlp]` and surfaces.
 `media.download` params:
     url         the page's link
     output_dir  the folder to save the video in
-    options     {"max_height": "1080", "auto_update": bool}
+    options     {"max_height": "1080", "container": "mp4", "video_codec": "h264",
+                 "audio_codec": "aac", "auto_update": bool}
 Frames: `progress` {value (-1 while the size is unknown), message}; then
 `result` {"path", "title", "engine": "yt-dlp <version>"}, or `error` with code
 `unsupported_url` (no video it can get there), `bad_params` (a playlist, a
@@ -34,6 +35,11 @@ Options
 -------
 `max_height`, or $YTDLP_MAX_HEIGHT (default 1080): the tallest video to get,
 or "best".
+`container`, or $YTDLP_CONTAINER (default mp4): the file type, mp4, mkv or
+webm; MKV when the streams don't fit in the one asked for.
+`video_codec`, or $YTDLP_VIDEO_CODEC (default h264): h264, any, av1, vp9 or
+h265. `audio_codec`, or $YTDLP_AUDIO_CODEC (default aac): aac, any or opus.
+Preferences: without one, the best there is.
 `auto_update`, or $YTDLP_AUTO_UPDATE (default on): fetch yt-dlp's latest
 release, at most once a day (ytdlp.py).
 """
@@ -153,6 +159,11 @@ def _height(options: dict) -> str:
     return value if value in downloader.HEIGHTS else downloader.DEFAULT_HEIGHT
 
 
+def _choice(options: dict, key: str, env: str, allowed, default: str) -> str:
+    value = str(options.get(key) or _env(env) or default).strip().lower()
+    return value if value in allowed else default
+
+
 def _ffmpeg() -> str | None:
     """The ffmpeg Subtitld ships (it says where), else one on PATH."""
     given = _env('SUBTITLD_FFMPEG_EXECUTABLE')
@@ -205,7 +216,13 @@ def _handle_download(state: _Request, params: dict) -> None:
         started = time.monotonic()
         result = downloader.download(
             module, url, output_dir, _height(options), _ffmpeg(), str(runtime) if runtime else None,
-            lambda value, message: _emit_progress(req_id, value, message), cancelled)
+            lambda value, message: _emit_progress(req_id, value, message), cancelled,
+            container=_choice(options, 'container', 'YTDLP_CONTAINER', downloader.CONTAINERS,
+                              downloader.DEFAULT_CONTAINER),
+            video_codec=_choice(options, 'video_codec', 'YTDLP_VIDEO_CODEC', downloader.VIDEO_CODECS,
+                                downloader.DEFAULT_VIDEO_CODEC),
+            audio_codec=_choice(options, 'audio_codec', 'YTDLP_AUDIO_CODEC', downloader.AUDIO_CODECS,
+                                downloader.DEFAULT_AUDIO_CODEC))
         log.info('download %s: %s in %.1fs', req_id, result['path'], time.monotonic() - started)
         result['engine'] = f'yt-dlp {version}'
         _emit_progress(req_id, 1.0, '')

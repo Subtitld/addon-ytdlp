@@ -13,6 +13,7 @@ and runs on this platform; YouTube may refuse a data centre's address
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 
 
@@ -33,6 +34,20 @@ def test_gets_the_video_of_a_page(addon, site, tmp_path):
     assert frame['data']['engine'].startswith('yt-dlp ')
     assert seen and all(-1.0 <= f['value'] <= 1.0 for f in seen)
     assert sorted(os.listdir(out)) == [os.path.basename(path)]  # nothing else left
+
+
+def test_file_type_asked_for(addon, site, tmp_path):
+    frame = addon.request('m', {'url': f'{site}/page.html', 'output_dir': str(tmp_path / 'mkv'),
+                                'options': {'container': 'mkv', 'video_codec': 'any', 'audio_codec': 'any',
+                                            'max_height': 'best'}})
+    assert frame['type'] == 'result', frame
+    if not shutil.which('ffmpeg'):
+        # Without ffmpeg (Subtitld always hands it one) the file stays as the website has it.
+        assert frame['data']['path'].endswith('.mp4'), frame
+        return
+    assert frame['data']['path'].endswith('.mkv'), frame
+    assert open(frame['data']['path'], 'rb').read(4) == b'\x1a\x45\xdf\xa3'  # Matroska
+    assert len(os.listdir(tmp_path / 'mkv')) == 1
 
 
 def test_a_page_with_no_video(addon, site, tmp_path):

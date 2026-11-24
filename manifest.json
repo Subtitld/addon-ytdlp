@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "id": "ytdlp",
-  "version": "26.11.1",
+  "version": "26.11.2",
   "display_name": "Videos from websites (yt-dlp)",
   "summary": "Opens the video of a web page from its link: YouTube, Vimeo and the many other websites yt-dlp knows. Keeps yt-dlp up to date by itself, as websites change. Use it only for videos you have the right to work on.",
   "author": "Subtitld",
@@ -74,6 +74,77 @@
             "label": "The largest there is"
           }
         ]
+      },
+      {
+        "key": "container",
+        "type": "select",
+        "label": "File type",
+        "default": "mp4",
+        "options": [
+          {
+            "value": "mp4",
+            "label": "MP4"
+          },
+          {
+            "value": "mkv",
+            "label": "MKV"
+          },
+          {
+            "value": "webm",
+            "label": "WebM"
+          }
+        ],
+        "help": "The kind of file the video is saved as. MKV takes any video and sound; when they don't fit in MP4 or WebM, the video is saved as MKV."
+      },
+      {
+        "key": "video_codec",
+        "type": "select",
+        "label": "Video codec",
+        "default": "h264",
+        "options": [
+          {
+            "value": "h264",
+            "label": "H.264 (plays everywhere)"
+          },
+          {
+            "value": "any",
+            "label": "Any, the best there is"
+          },
+          {
+            "value": "av1",
+            "label": "AV1"
+          },
+          {
+            "value": "vp9",
+            "label": "VP9"
+          },
+          {
+            "value": "h265",
+            "label": "H.265 (HEVC)"
+          }
+        ],
+        "help": "The video codec to prefer. When the website has none in it, the best video there is is taken. Any takes the best whatever its codec, often AV1 or VP9, which some editors and older computers play less smoothly."
+      },
+      {
+        "key": "audio_codec",
+        "type": "select",
+        "label": "Audio codec",
+        "default": "aac",
+        "options": [
+          {
+            "value": "aac",
+            "label": "AAC (plays everywhere)"
+          },
+          {
+            "value": "any",
+            "label": "Any, the best there is"
+          },
+          {
+            "value": "opus",
+            "label": "Opus"
+          }
+        ],
+        "help": "The audio codec to prefer. When the website has none in it, the best sound there is is taken."
       },
       {
         "key": "auto_update",

@@ -37,3 +37,10 @@ def test_settings():
     assert heights == list(HEIGHTS)
     assert fields['max_height']['default'] == DEFAULT_HEIGHT
     assert fields['auto_update']['type'] == 'bool'
+    from ytdlp_addon.downloader import (AUDIO_CODECS, CONTAINERS, DEFAULT_AUDIO_CODEC, DEFAULT_CONTAINER,
+                                        DEFAULT_VIDEO_CODEC, VIDEO_CODECS)
+    for key, allowed, default in (('container', CONTAINERS, DEFAULT_CONTAINER),
+                                  ('video_codec', VIDEO_CODECS, DEFAULT_VIDEO_CODEC),
+                                  ('audio_codec', AUDIO_CODECS, DEFAULT_AUDIO_CODEC)):
+        assert [option['value'] for option in fields[key]['options']] == list(allowed), key
+        assert fields[key]['default'] == default, key

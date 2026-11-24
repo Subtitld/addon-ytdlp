@@ -4,9 +4,12 @@ Copyright 2026 Subtitld contributors
 SPDX-License-Identifier: Apache-2.0
 
 One video per link (a link to a playlist or a channel is refused: open one of
-its videos), at most as tall as the setting says, H.264 preferred so every
-player and editor reads it, as MP4 (MKV when its streams don't fit in one).
-yt-dlp puts separate video and audio together with the ffmpeg Subtitld ships.
+its videos), at most as tall as the setting says, in the file type and with
+the codecs the settings prefer: by default H.264 and AAC in an MP4, which
+every player and editor reads. A codec is a preference: when the website has
+none in it, the best it has is taken. A file type the streams don't fit in
+gives an MKV, which takes any. yt-dlp puts separate video and audio together,
+and changes the file type of a single file, with the ffmpeg Subtitld ships.
 """
 
 from __future__ import annotations
@@ -33,22 +36,62 @@ class Cancelled(Exception):
     pass
 
 
-def format_for(height: str, can_merge: bool = True) -> str:
-    """yt-dlp's format choice: H.264 video with AAC audio when there is one this tall, else the best there is
-    this tall, else anything. Without ffmpeg, only files that have both already (nothing to put together)."""
+CONTAINERS = ('mp4', 'mkv', 'webm')
+DEFAULT_CONTAINER = 'mp4'
+# The setting's value -> yt-dlp's filter on a format's codec ('any': no filter, the best there is).
+VIDEO_CODECS = {
+    'h264': "[vcodec^=avc1]",
+    'any': '',
+    'av1': "[vcodec^=av01]",
+    'vp9': "[vcodec^=vp09]",
+    'h265': "[vcodec~='^(hev|hvc)1']",
+}
+DEFAULT_VIDEO_CODEC = 'h264'
+AUDIO_CODECS = {
+    'aac': "[acodec^=mp4a]",
+    'any': '',
+    'opus': "[acodec=opus]",
+}
+DEFAULT_AUDIO_CODEC = 'aac'
+
+
+def format_for(height: str, can_merge: bool = True, video_codec: str = DEFAULT_VIDEO_CODEC,
+               audio_codec: str = DEFAULT_AUDIO_CODEC) -> str:
+    """yt-dlp's format choice: the best video and audio this tall in the codecs asked for, else in the video
+    codec with any audio, else the best there is this tall, else anything. Without ffmpeg, only files that
+    have both already (nothing to put together)."""
     if height not in HEIGHTS or height == 'best':
         limit = ''
     else:
         limit = f'[height<={int(height)}]'
+    vc = VIDEO_CODECS.get(video_codec, VIDEO_CODECS[DEFAULT_VIDEO_CODEC])
+    ac = AUDIO_CODECS.get(audio_codec, AUDIO_CODECS[DEFAULT_AUDIO_CODEC])
     choices = [
-        f'bv*{limit}[vcodec^=avc1]+ba[ext=m4a]',
-        f'b{limit}[vcodec^=avc1][acodec!=none]',
+        f'bv*{limit}{vc}+ba{ac}',
+        f'b{limit}{vc}{ac}[acodec!=none]',
+        f'bv*{limit}{vc}+ba',
+        f'b{limit}{vc}[acodec!=none]',
         f'bv*{limit}+ba',
         f'b{limit}',
         'bv*+ba',
         'b',
     ]
-    return '/'.join(c for c in choices if can_merge or '+' not in c)
+    unique = []
+    for choice in choices:
+        if (can_merge or '+' not in choice) and choice not in unique:
+            unique.append(choice)
+    return '/'.join(unique)
+
+
+def containers_for(container: str) -> tuple[str, str]:
+    """(merge_output_format, remux rule) for the file type asked for. yt-dlp takes the first container the
+    streams fit in, so MKV, which takes any, comes last; a single file already in WebM goes to MKV, not MP4,
+    for the same reason."""
+    if container == 'mkv':
+        return 'mkv', 'mkv'
+    if container == 'webm':
+        return 'webm/mkv', 'webm>webm/mkv'
+    return 'mp4/mkv', 'webm>mkv/mp4'
 
 
 _ANSI = re.compile(r'\x1b\[[0-9;]*m')
@@ -100,7 +143,8 @@ def _is_unsupported(yt_dlp, exc) -> bool:
 
 
 def download(yt_dlp, url: str, output_dir: str, height: str, ffmpeg: str | None, deno: str | None,
-             progress, cancelled) -> dict:
+             progress, cancelled, container: str = DEFAULT_CONTAINER, video_codec: str = DEFAULT_VIDEO_CODEC,
+             audio_codec: str = DEFAULT_AUDIO_CODEC) -> dict:
     """Get the video at `url` into `output_dir`: {'path', 'title'}. `progress(value, message)`, value -1 while
     the size isn't known; `cancelled()` True stops it (Cancelled, what it wrote removed)."""
     folder = Path(output_dir)
@@ -136,10 +180,12 @@ def download(yt_dlp, url: str, output_dir: str, height: str, ffmpeg: str | None,
             raise Cancelled()
         if status.get('status') == 'started' and status.get('postprocessor') in ('Merger', 'FFmpegMerger'):
             progress(-1.0, 'Putting the video and its sound together...')
+        elif status.get('status') == 'started' and status.get('postprocessor') in ('VideoRemuxer', 'FFmpegVideoRemuxer'):
+            progress(-1.0, 'Changing the file type...')
 
     options = {
-        'format': format_for(height, can_merge=bool(ffmpeg)),
-        'merge_output_format': 'mp4/mkv',
+        'format': format_for(height, bool(ffmpeg), video_codec, audio_codec),
+        'merge_output_format': containers_for(container)[0],
         'outtmpl': {'default': str(folder / '%(title).120B [%(id)s].%(ext)s')},
         'windowsfilenames': True,
         'noplaylist': True,
@@ -155,6 +201,8 @@ def download(yt_dlp, url: str, output_dir: str, height: str, ffmpeg: str | None,
     }
     if ffmpeg:
         options['ffmpeg_location'] = ffmpeg
+        # A single file (nothing to merge) in the file type asked for too.
+        options['postprocessors'] = [{'key': 'FFmpegVideoRemuxer', 'preferedformat': containers_for(container)[1]}]
     if deno:
         options['js_runtimes'] = {'deno': {'path': deno}}
 
@@ -175,9 +223,7 @@ def download(yt_dlp, url: str, output_dir: str, height: str, ffmpeg: str | None,
             ydl.process_info(info)
             if cancelled():
                 raise Cancelled()
-            requested = info.get('requested_downloads') or []
-            path = (requested[0].get('filepath') if requested else None) or info.get('filepath') \
-                or ydl.prepare_filename(info)
+            path = _written(info, folder, before)
     except (Cancelled, KeyboardInterrupt):
         _remove_new(folder, before, written['id'])
         raise Cancelled()
@@ -199,6 +245,21 @@ def download(yt_dlp, url: str, output_dir: str, height: str, ffmpeg: str | None,
     if not path or not os.path.isfile(path):
         raise DownloadError('internal', f'yt-dlp reported {path!r}, which is not there')
     return {'path': str(path), 'title': str(info.get('title') or '')}
+
+
+def _written(info: dict, folder: Path, before: set[str]) -> str | None:
+    """The file the download ended in. What yt-dlp says, when it is there; after a merge or a change of file
+    type that can be a name it no longer uses, so else the file new in the folder with the video's id in its
+    name (pieces and parts aside)."""
+    requested = info.get('requested_downloads') or []
+    for path in (info.get('filepath'), requested[0].get('filepath') if requested else None):
+        if path and os.path.isfile(path):
+            return str(path)
+    mark = f"[{info.get('id')}]"
+    found = [entry for entry in folder.iterdir()
+             if entry.name not in before and mark in entry.name and entry.is_file()
+             and not re.search(r'\.(part|ytdl|temp)$|\.f[0-9a-z-]+\.\w+$', entry.name)]
+    return str(max(found, key=lambda entry: entry.stat().st_size)) if found else None
 
 
 def _remove_new(folder: Path, before: set[str], video_id: str | None) -> None:

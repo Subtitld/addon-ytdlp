@@ -12,10 +12,26 @@ from ytdlp_addon.__main__ import _height
 
 def test_format_prefers_h264_within_the_height():
     choice = downloader.format_for('720')
-    assert choice.split('/')[0] == 'bv*[height<=720][vcodec^=avc1]+ba[ext=m4a]'
+    assert choice.split('/')[0] == 'bv*[height<=720][vcodec^=avc1]+ba[acodec^=mp4a]'
     assert choice.endswith('/bv*+ba/b')  # anything at all, last
     assert '[height' not in downloader.format_for('best')
     assert '+' not in downloader.format_for('720', can_merge=False)
+
+
+def test_codecs_are_preferences():
+    choice = downloader.format_for('best', True, 'any', 'any').split('/')
+    assert choice[0] == 'bv*+ba'  # the best, whatever its codec
+    assert len(choice) == len(set(choice))
+    av1 = downloader.format_for('1080', True, 'av1', 'opus').split('/')
+    assert av1[0] == 'bv*[height<=1080][vcodec^=av01]+ba[acodec=opus]'
+    assert 'bv*[height<=1080]+ba' in av1 and av1[-1] == 'b'  # falls back to any codec
+    assert downloader.format_for('720', True, 'nonsense') == downloader.format_for('720')
+
+
+def test_file_types():
+    assert downloader.containers_for('mkv') == ('mkv', 'mkv')
+    assert downloader.containers_for('mp4')[0] == 'mp4/mkv'
+    assert downloader.containers_for('webm') == ('webm/mkv', 'webm>webm/mkv')
 
 
 def test_heights():
