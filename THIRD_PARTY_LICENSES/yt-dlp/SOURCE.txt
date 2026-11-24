@@ -1,0 +1,6 @@
+yt-dlp 2026.11.23, https://github.com/yt-dlp/yt-dlp (The Unlicense).
+The release file `yt-dlp` (a zip of yt-dlp's Python code, with yt-dlp-ejs's
+scripts, also Unlicense) is carried as bin/_internal/assets/yt-dlp, unchanged:
+its sha256 is pinned in ytdlp_addon/pins.py. The add-on may later download a
+newer release file from the same project, checked against the sums published
+with it.

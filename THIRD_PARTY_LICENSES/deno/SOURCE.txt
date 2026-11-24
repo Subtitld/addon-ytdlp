@@ -1,0 +1,5 @@
+Deno 2.9.8, https://github.com/denoland/deno (MIT).
+Not in this archive: the add-on downloads Deno's official release for this
+computer the first time a YouTube link is opened, checked against the sha256
+pinned in ytdlp_addon/pins.py, and keeps it in Subtitld's model folder.
+yt-dlp runs it to solve the JavaScript YouTube's player needs.

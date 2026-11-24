@@ -1,0 +1,3 @@
+certifi (https://github.com/certifi/python-certifi): Mozilla's CA bundle, cacert.pem,
+used for HTTPS (the downloads of yt-dlp, Deno and the videos). Mozilla Public License 2.0; its source is the
+file itself, bin/_internal/certifi/cacert.pem.

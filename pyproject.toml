@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "subtitld-addon-ytdlp"
+version = "26.11.1"
+description = "Subtitld add-on: open the video of a web page (YouTube, Vimeo and more) with yt-dlp"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Subtitld", email = "jbopen@gmail.com" }]
+requires-python = ">=3.10"
+
+# yt-dlp itself is not a dependency: the add-on runs yt-dlp's official release
+# file, which tools/fetch_ytdlp.py puts in build/assets/ (ytdlp_addon/ytdlp.py).
+# certifi is the CA bundle for HTTPS in the frozen add-on.
+dependencies = ["certifi"]
+
+[project.optional-dependencies]
+# yt-dlp is installed for the build only, so PyInstaller sees which standard
+# modules it imports (pyinstaller.spec keeps those, and leaves yt-dlp out).
+build = ["pyinstaller>=6.10", "yt-dlp==2026.11.23"]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+ytdlp-addon = "ytdlp_addon.__main__:main"
+
+[tool.setuptools]
+packages = ["ytdlp_addon"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,87 @@
+{
+  "manifest_version": 1,
+  "id": "ytdlp",
+  "version": "26.11.1",
+  "display_name": "Videos from websites (yt-dlp)",
+  "summary": "Opens the video of a web page from its link: YouTube, Vimeo and the many other websites yt-dlp knows. Keeps yt-dlp up to date by itself, as websites change. Use it only for videos you have the right to work on.",
+  "author": "Subtitld",
+  "homepage": "https://github.com/Subtitld/addon-ytdlp",
+  "license": "Apache-2.0",
+  "executable": "bin/ytdlp-addon",
+  "protocol": 1,
+  "startup_timeout_sec": 30,
+  "platforms": [
+    "linux",
+    "macos",
+    "windows"
+  ],
+  "tasks": [
+    "media.download"
+  ],
+  "compute": "cpu",
+  "models": [
+    {
+      "id": "yt-dlp",
+      "display_name": "yt-dlp (updated by the add-on, about 3 MB)",
+      "size_mb": 3,
+      "license": "Unlicense",
+      "bundled": true,
+      "default": true,
+      "url": "https://github.com/yt-dlp/yt-dlp"
+    },
+    {
+      "id": "deno",
+      "display_name": "Deno, for YouTube (downloaded once, when first needed)",
+      "size_mb": 40,
+      "license": "MIT",
+      "bundled": false,
+      "url": "https://github.com/denoland/deno"
+    }
+  ],
+  "disk_required_mb": 150,
+  "ram_required_mb": 256,
+  "config_schema": {
+    "fields": [
+      {
+        "key": "max_height",
+        "type": "select",
+        "label": "Largest video",
+        "default": "1080",
+        "help": "The tallest video to get, in pixels. Subtitling rarely needs more than 1080; a smaller video downloads faster.",
+        "options": [
+          {
+            "value": "480",
+            "label": "480p"
+          },
+          {
+            "value": "720",
+            "label": "720p"
+          },
+          {
+            "value": "1080",
+            "label": "1080p (Full HD)"
+          },
+          {
+            "value": "1440",
+            "label": "1440p"
+          },
+          {
+            "value": "2160",
+            "label": "2160p (4K)"
+          },
+          {
+            "value": "best",
+            "label": "The largest there is"
+          }
+        ]
+      },
+      {
+        "key": "auto_update",
+        "type": "bool",
+        "label": "Keep yt-dlp up to date",
+        "default": true,
+        "help": "Once a day at most, fetch yt-dlp's latest release when the add-on is used. Websites change often, and an old yt-dlp may no longer get their videos."
+      }
+    ]
+  }
+}
