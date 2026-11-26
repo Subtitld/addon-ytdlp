@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 
 
 def test_hello(addon):
@@ -87,6 +88,10 @@ def test_youtube_with_deno(addon, tmp_path):
         assert os.path.getsize(frame['data']['path']) > 100_000
     else:
         assert 'bot' in frame['message'].lower() or 'sign' in frame['message'].lower(), frame
+    if sys.platform.startswith('haiku'):
+        # No Deno build: yt-dlp ran YouTube's JavaScript with Node, and fetched nothing.
+        assert not list(deno_folder.rglob('deno*')), 'Deno fetched where it has no build'
+        return
     executables = [p for p in deno_folder.rglob('deno*') if p.is_file() and p.suffix in ('', '.exe')]
     assert executables, 'Deno was not fetched'
     version = subprocess.run([str(executables[0]), '--version'], capture_output=True, text=True, timeout=60)

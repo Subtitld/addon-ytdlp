@@ -6,6 +6,9 @@ SPDX-License-Identifier: Apache-2.0
 
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
+
 from ytdlp_addon import deno, downloader, pins, ytdlp
 from ytdlp_addon.__main__ import _height
 
@@ -62,6 +65,39 @@ def test_deno_only_for_youtube():
 def test_deno_has_a_pin_for_this_computer():
     name = deno.target()
     assert name is None or name in pins.DENO_SHA256
+
+
+def test_no_deno_on_haiku_node_instead(monkeypatch, tmp_path):
+    monkeypatch.setattr(deno.sys, 'platform', 'haiku')
+    assert deno.target() is None
+    node = tmp_path / 'node'
+    node.write_text('')
+    monkeypatch.setenv('YTDLP_NODE', str(node))
+    assert deno.node() == str(node)
+    monkeypatch.setenv('YTDLP_NODE', str(tmp_path / 'missing'))
+    assert deno.node() is None
+
+
+def test_js_runtime_reaches_yt_dlp(monkeypatch):
+    seen = {}
+
+    class FakeYDL:
+        def __init__(self, options):
+            seen.update(options)
+
+        def __enter__(self):
+            raise downloader.Cancelled()
+
+        def __exit__(self, *exc):
+            return False
+
+    fake = type('yt_dlp', (), {'YoutubeDL': FakeYDL, 'utils': None})
+    try:
+        downloader.download(fake, 'https://youtu.be/x', str(Path(tempfile.mkdtemp())), 'best', None,
+                            ('node', '/bin/node'), lambda *a: None, lambda: False)
+    except downloader.Cancelled:
+        pass
+    assert seen['js_runtimes'] == {'node': {'path': '/bin/node'}}
 
 
 def test_version_order():

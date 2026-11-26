@@ -4,7 +4,8 @@ Copyright 2026 Subtitld contributors
 SPDX-License-Identifier: Apache-2.0
 
 $YTDLP_DENO (a deno executable) wins; otherwise the pinned release (pins.py)
-is downloaded into the add-on's folder.
+is downloaded into the add-on's folder. Where Deno has no build (Haiku), yt-dlp
+runs the same JavaScript with Node instead, from the system ($YTDLP_NODE wins).
 """
 
 from __future__ import annotations
@@ -41,9 +42,19 @@ def target() -> str | None:
         name = f'{arch}-pc-windows-msvc'
     elif sys.platform == 'darwin':
         name = f'{arch}-apple-darwin'
-    else:
+    elif sys.platform.startswith('linux'):
         name = f'{arch}-unknown-linux-gnu'
+    else:
+        return None  # Haiku and the BSDs: Node instead (node())
     return name if name in pins.DENO_SHA256 else None
+
+
+def node() -> str | None:
+    """Node, for where Deno has no build: $YTDLP_NODE, else `node` on PATH."""
+    override = os.environ.get('YTDLP_NODE', '').strip()
+    if override:
+        return override if os.path.isfile(override) else None
+    return shutil.which('node')
 
 
 def _executable(folder: Path) -> Path:
