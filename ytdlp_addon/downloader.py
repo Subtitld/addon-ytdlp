@@ -142,11 +142,13 @@ def _is_unsupported(yt_dlp, exc) -> bool:
     return 'Unsupported URL' in str(exc)
 
 
-def download(yt_dlp, url: str, output_dir: str, height: str, ffmpeg: str | None, deno: str | None,
+def download(yt_dlp, url: str, output_dir: str, height: str, ffmpeg: str | None,
+             js_runtime: tuple[str, str] | None,
              progress, cancelled, container: str = DEFAULT_CONTAINER, video_codec: str = DEFAULT_VIDEO_CODEC,
              audio_codec: str = DEFAULT_AUDIO_CODEC) -> dict:
     """Get the video at `url` into `output_dir`: {'path', 'title'}. `progress(value, message)`, value -1 while
-    the size isn't known; `cancelled()` True stops it (Cancelled, what it wrote removed)."""
+    the size isn't known; `cancelled()` True stops it (Cancelled, what it wrote removed). `js_runtime` is
+    (name, path) of what solves YouTube's JavaScript: ('deno', ...) or, where Deno has no build, ('node', ...)."""
     folder = Path(output_dir)
     folder.mkdir(parents=True, exist_ok=True)
     before = {entry.name for entry in folder.iterdir()}
@@ -203,8 +205,9 @@ def download(yt_dlp, url: str, output_dir: str, height: str, ffmpeg: str | None,
         options['ffmpeg_location'] = ffmpeg
         # A single file (nothing to merge) in the file type asked for too.
         options['postprocessors'] = [{'key': 'FFmpegVideoRemuxer', 'preferedformat': containers_for(container)[1]}]
-    if deno:
-        options['js_runtimes'] = {'deno': {'path': deno}}
+    if js_runtime:
+        name, path = js_runtime
+        options['js_runtimes'] = {name: {'path': path}}
 
     try:
         with yt_dlp.YoutubeDL(options) as ydl:

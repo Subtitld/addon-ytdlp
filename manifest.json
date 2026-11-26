@@ -13,7 +13,13 @@
   "platforms": [
     "linux",
     "macos",
-    "windows"
+    "windows",
+    "haiku"
+  ],
+  "haiku_packages": [
+    "python3.14",
+    "certifi_python3.14",
+    "nodejs24"
   ],
   "tasks": [
     "media.download"

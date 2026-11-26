@@ -27,7 +27,8 @@ def test_task_and_executable():
     assert MANIFEST['tasks'] == ['media.download']
     assert MANIFEST['executable'] == 'bin/ytdlp-addon'
     assert MANIFEST['protocol'] == 1
-    assert set(MANIFEST['platforms']) == {'linux', 'macos', 'windows'}
+    assert set(MANIFEST['platforms']) == {'linux', 'macos', 'windows', 'haiku'}
+    assert MANIFEST['haiku_packages'] == ['python3.14', 'certifi_python3.14', 'nodejs24']
 
 
 def test_settings():

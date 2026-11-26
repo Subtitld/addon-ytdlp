@@ -206,16 +206,20 @@ def _handle_download(state: _Request, params: dict) -> None:
             _emit_progress(req_id, -1.0, 'Starting yt-dlp...')
             module, version, _path = ytdlp.load(_flag(options, 'auto_update', 'YTDLP_AUTO_UPDATE', True), cancelled)
             runtime = None
-            if deno.needed_for(url):
+            if deno.needed_for(url) and deno.find() is None and deno.target() is None:
+                node = deno.node()
+                runtime = ('node', node) if node else None
+            elif deno.needed_for(url):
                 if deno.find() is None:
                     _emit_progress(req_id, 0.0, 'Getting Deno, once (about 40 MB)...')
-                runtime = deno.ensure(_every_percent(lambda value: _emit_progress(
+                path = deno.ensure(_every_percent(lambda value: _emit_progress(
                     req_id, value, 'Getting Deno, once (about 40 MB)...')), cancelled)
+                runtime = ('deno', str(path)) if path else None
         if cancelled():
             raise downloader.Cancelled()
         started = time.monotonic()
         result = downloader.download(
-            module, url, output_dir, _height(options), _ffmpeg(), str(runtime) if runtime else None,
+            module, url, output_dir, _height(options), _ffmpeg(), runtime,
             lambda value, message: _emit_progress(req_id, value, message), cancelled,
             container=_choice(options, 'container', 'YTDLP_CONTAINER', downloader.CONTAINERS,
                               downloader.DEFAULT_CONTAINER),
