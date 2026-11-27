@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "id": "ytdlp",
-  "version": "26.11.2",
+  "version": "26.11.3",
   "display_name": "Videos from websites (yt-dlp)",
   "summary": "Opens the video of a web page from its link: YouTube, Vimeo and the many other websites yt-dlp knows. Keeps yt-dlp up to date by itself, as websites change. Use it only for videos you have the right to work on.",
   "author": "Subtitld",

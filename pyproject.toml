@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "subtitld-addon-ytdlp"
-version = "26.11.2"
+version = "26.11.3"
 description = "Subtitld add-on: open the video of a web page (YouTube, Vimeo and more) with yt-dlp"
 readme = "README.md"
 license = { text = "Apache-2.0" }
